@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Dashboard — Transcript Intelligence</title>
+    <meta name="description" content="Track student progress, mastery, and growth over time.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+
+<body>
+    <div class="app">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-inner">
+                <div class="logo">
+                    <a href="/" class="back-link" id="back-link">
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd"
+                                d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" />
+                        </svg>
+                    </a>
+                    <div>
+                        <h1 class="logo-title" id="student-name-header">Loading...</h1>
+                        <p class="logo-subtitle" id="student-meta-header"></p>
+                    </div>
+                </div>
+                <div class="header-actions">
+                    <div class="view-toggle" id="view-toggle">
+                        <button class="toggle-btn active" data-view="tutor" id="toggle-tutor"
+                            onclick="switchView('tutor')">
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                                <path d="M8 8a3 3 0 100-6 3 3 0 000 6zm-5 6a5 5 0 0110 0H3z" />
+                            </svg>
+                            Tutor View
+                        </button>
+                        <button class="toggle-btn" data-view="parent" id="toggle-parent" onclick="switchView('parent')">
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                                <path
+                                    d="M13 6.5a.5.5 0 01.5.5v3a.5.5 0 01-.5.5h-3a.5.5 0 010-1H12V7a.5.5 0 01.5-.5h.5zM3 6.5a.5.5 0 00-.5.5v3a.5.5 0 00.5.5h3a.5.5 0 000-1H4V7a.5.5 0 00-.5-.5H3z" />
+                                <path d="M8 1a7 7 0 100 14A7 7 0 008 1z" fill="none" stroke="currentColor"
+                                    stroke-width="1.5" />
+                            </svg>
+                            Parent View
+                        </button>
+                    </div>
+                    <button class="btn btn-primary" onclick="openUploadModal()">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                            <path
+                                d="M8 2a.5.5 0 01.5.5v5h5a.5.5 0 010 1h-5v5a.5.5 0 01-1 0v-5h-5a.5.5 0 010-1h5v-5A.5.5 0 018 2z" />
+                        </svg>
+                        Upload Transcript
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Dashboard Content -->
+        <main class="main">
+            <div class="container">
+
+                <!-- ═══════════════════════════════════════ -->
+                <!-- TUTOR VIEW -->
+                <!-- ═══════════════════════════════════════ -->
+                <div id="tutor-view" class="dashboard-view">
+
+                    <!-- Row 1: Goals + Next Lesson -->
+                    <div class="dashboard-grid two-col">
+                        <!-- Goal Progress -->
+                        <div class="card" id="goals-card">
+                            <div class="card-header">
+                                <h3>🎯 Goal Progress</h3>
+                            </div>
+                            <div class="card-body" id="goals-list">
+                                <div class="loading-state">
+                                    <div class="spinner"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Next Lesson Suggestion -->
+                        <div class="card card-accent" id="next-lesson-card">
+                            <div class="card-header">
+                                <h3>🚀 Next Lesson Target</h3>
+                            </div>
+                            <div class="card-body" id="next-lesson-content">
+                                <div class="loading-state">
+                                    <div class="spinner"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Row 2: Topic Mastery Heatmap -->
+                    <div class="card" id="heatmap-card">
+                        <div class="card-header">
+                            <h3>📊 Topic Mastery Heatmap</h3>
+                            <div class="heatmap-legend">
+                                <span class="legend-item"><span class="legend-dot"
+                                        style="background:#ef4444"></span>0-25</span>
+                                <span class="legend-item"><span class="legend-dot"
+                                        style="background:#f97316"></span>26-50</span>
+                                <span class="legend-item"><span class="legend-dot"
+                                        style="background:#eab308"></span>51-70</span>
+                                <span class="legend-item"><span class="legend-dot"
+                                        style="background:#22c55e"></span>71-90</span>
+                                <span class="legend-item"><span class="legend-dot"
+                                        style="background:#10b981"></span>91-100</span>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="heatmap-grid" id="heatmap-grid">
+                                <div class="loading-state">
+                                    <div class="spinner"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Row 3: Mental Blocks + Session Timeline -->
+                    <div class="dashboard-grid two-col">
+                        <!-- Mental Block Alerts -->
+                        <div class="card" id="mental-blocks-card">
+                            <div class="card-header">
+                                <h3>⚠️ Mental Block Alerts</h3>
+                            </div>
+                            <div class="card-body" id="mental-blocks-list">
+                                <div class="loading-state">
+                                    <div class="spinner"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Session Timeline -->
+                        <div class="card" id="timeline-card">
+                            <div class="card-header">
+                                <h3>📅 Session Timeline</h3>
+                            </div>
+                            <div class="card-body" id="timeline-list">
+                                <div class="loading-state">
+                                    <div class="spinner"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ═══════════════════════════════════════ -->
+                <!-- PARENT VIEW -->
+                <!-- ═══════════════════════════════════════ -->
+                <div id="parent-view" class="dashboard-view" style="display:none;">
+
+                    <!-- Row 1: Goal Meter + Next Milestone -->
+                    <div class="dashboard-grid two-col">
+                        <!-- Goal Progress Meter -->
+                        <div class="card" id="parent-goals-card">
+                            <div class="card-header">
+                                <h3>🎯 Goal Progress</h3>
+                            </div>
+                            <div class="card-body" id="parent-goals-content">
+                                <div class="loading-state">
+                                    <div class="spinner"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Next Milestone -->
+                        <div class="card card-accent" id="milestone-card">
+                            <div class="card-header">
+                                <h3>🏁 Next Milestone</h3>
+                            </div>
+                            <div class="card-body" id="milestone-content">
+                                <div class="loading-state">
+                                    <div class="spinner"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Row 2: Topics Improving + Needs Support -->
+                    <div class="dashboard-grid two-col">
+                        <!-- Topics Improving -->
+                        <div class="card" id="improving-card">
+                            <div class="card-header">
+                                <h3>📈 Topics Improving</h3>
+                            </div>
+                            <div class="card-body" id="improving-list">
+                                <div class="loading-state">
+                                    <div class="spinner"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Areas Needing Support -->
+                        <div class="card" id="support-card">
+                            <div class="card-header">
+                                <h3>🔧 Areas Needing Support</h3>
+                            </div>
+                            <div class="card-body" id="support-list">
+                                <div class="loading-state">
+                                    <div class="spinner"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Row 3: Confidence Trend -->
+                    <div class="card" id="confidence-card">
+                        <div class="card-header">
+                            <h3>💪 Engagement & Confidence Trend</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container" id="confidence-chart-container">
+                                <canvas id="confidence-chart"></canvas>
+                            </div>
+                            <div id="confidence-fallback" style="display:none;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Upload Transcript Modal -->
+    <div id="upload-modal" class="modal-overlay" style="display:none;">
+        <div class="modal modal-lg">
+            <div class="modal-header">
+                <h3>Upload Transcript</h3>
+                <button class="modal-close" onclick="closeUploadModal()">&times;</button>
+            </div>
+            <form id="upload-form" onsubmit="uploadTranscript(event)">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="transcript-type">Type</label>
+                        <select id="transcript-type" required>
+                            <option value="trial">Trial / Intake Session</option>
+                            <option value="session">Regular Session</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="session-date">Session Date</label>
+                        <input type="date" id="session-date" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="transcript-text">Transcript Text</label>
+                    <textarea id="transcript-text" rows="12" required
+                        placeholder="Paste the session transcript here...&#10;&#10;Example:&#10;Tutor: Let's start with some linear equations today.&#10;Student: Okay, I think I remember how to solve for x.&#10;Tutor: Great, try this one: 2x + 5 = 15&#10;Student: So I subtract 5... that gives 2x = 10... then x = 5?&#10;Tutor: Perfect! You got it on your own!"></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-ghost" onclick="closeUploadModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="upload-btn">
+                        <span id="upload-btn-text">Process Transcript</span>
+                        <span id="upload-spinner" class="btn-spinner" style="display:none;"></span>
+                    </button>
+                </div>
+            </form>
+
+            <!-- Processing Result -->
+            <div id="processing-result" style="display:none;">
+                <div class="result-header">
+                    <h4>✅ Processing Complete</h4>
+                </div>
+                <div id="result-content" class="result-content"></div>
+                <div class="modal-actions">
+                    <button class="btn btn-primary" onclick="closeUploadAndRefresh()">View Dashboard</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chart.js via CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+    <script>
+        // ─── Config ───
+        const STUDENT_ID = {{ student_id }};
+        let dashboardData = null;
+        let currentView = 'tutor';
+        let confidenceChart = null;
+
+        // ─── Init ───
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('session-date').value = new Date().toISOString().split('T')[0];
+            loadDashboard();
+        });
+
+        // ─── View Toggle ───
+        function switchView(view) {
+            currentView = view;
+            document.getElementById('tutor-view').style.display = view === 'tutor' ? 'block' : 'none';
+            document.getElementById('parent-view').style.display = view === 'parent' ? 'block' : 'none';
+            document.getElementById('toggle-tutor').classList.toggle('active', view === 'tutor');
+            document.getElementById('toggle-parent').classList.toggle('active', view === 'parent');
+
+            if (view === 'parent' && dashboardData) {
+                renderConfidenceChart();
+            }
+        }
+
+        // ─── Load Dashboard Data ───
+        async function loadDashboard() {
+            try {
+                const res = await fetch(`/api/students/${STUDENT_ID}/dashboard`);
+                dashboardData = await res.json();
+                renderAll();
+            } catch (e) {
+                console.error('Failed to load dashboard:', e);
+            }
+        }
+
+        function renderAll() {
+            const d = dashboardData;
+
+            // Header
+            document.getElementById('student-name-header').textContent = d.student.name;
+            document.getElementById('student-meta-header').textContent =
+                `${d.student.grade} · ${d.student.curriculum || 'General'} ${d.student.target_exam ? '· ' + d.student.target_exam : ''}`;
+            document.title = `${d.student.name} — Transcript Intelligence Dashboard`;
+
+            // Tutor view
+            renderGoals(d.goals);
+            renderHeatmap(d.topics);
+            renderMentalBlocks(d.mental_blocks);
+            renderTimeline(d.sessions);
+            renderNextLesson(d.recommended_next);
+
+            // Parent view
+            renderParentGoals(d.goals);
+            renderImproving(d.improving_topics);
+            renderNeedsSupport(d.needs_support);
+            renderMilestone(d.goals);
+        }
+
+        // ─── Tutor: Goal Progress ───
+        function renderGoals(goals) {
+            const el = document.getElementById('goals-list');
+            if (!goals || goals.length === 0) {
+                el.innerHTML = '<p class="text-muted">No goals set yet. Upload a trial transcript to auto-generate goals.</p>';
+                return;
+            }
+
+            el.innerHTML = goals.map(g => {
+                const progress = g.status === 'achieved' ? 100 : g.status === 'in progress' ? 50 : 0;
+                const statusClass = g.status === 'achieved' ? 'status-achieved' : g.status === 'in progress' ? 'status-progress' : 'status-pending';
+                return `
+                    <div class="goal-item">
+                        <div class="goal-header">
+                            <span class="goal-desc">${g.description}</span>
+                            <span class="badge ${statusClass}">${g.status}</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width:${progress}%"></div>
+                        </div>
+                        ${g.measurable_outcome ? `<p class="goal-outcome">${g.measurable_outcome}</p>` : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // ─── Tutor: Mastery Heatmap ───
+        function renderHeatmap(topics) {
+            const el = document.getElementById('heatmap-grid');
+            if (!topics || topics.length === 0) {
+                el.innerHTML = '<p class="text-muted">No topics tracked yet.</p>';
+                return;
+            }
+
+            // Group by parent
+            const parentTopics = topics.filter(t => !t.parent_topic_id);
+            const childTopics = topics.filter(t => t.parent_topic_id);
+
+            let html = '';
+
+            // Show all topics as heatmap cells
+            const allTopics = [...parentTopics, ...childTopics];
+            html = '<div class="heatmap-cells">';
+            allTopics.forEach(t => {
+                const color = getMasteryColor(t.mastery_score);
+                const isParent = !t.parent_topic_id;
+                html += `
+                    <div class="heatmap-cell ${isParent ? 'parent-cell' : ''}" style="background:${color}" title="${t.topic_name}: ${t.mastery_score}% mastery, ${t.confidence_score}% confidence">
+                        <span class="cell-name">${t.topic_name}</span>
+                        <span class="cell-score">${Math.round(t.mastery_score)}%</span>
+                    </div>
+                `;
+            });
+            html += '</div>';
+
+            el.innerHTML = html;
+        }
+
+        function getMasteryColor(score) {
+            if (score <= 25) return 'rgba(239, 68, 68, 0.25)';
+            if (score <= 50) return 'rgba(249, 115, 22, 0.25)';
+            if (score <= 70) return 'rgba(234, 179, 8, 0.25)';
+            if (score <= 90) return 'rgba(34, 197, 94, 0.25)';
+            return 'rgba(16, 185, 129, 0.35)';
+        }
+
+        function getMasteryBorder(score) {
+            if (score <= 25) return '#ef4444';
+            if (score <= 50) return '#f97316';
+            if (score <= 70) return '#eab308';
+            if (score <= 90) return '#22c55e';
+            return '#10b981';
+        }
+
+        // ─── Tutor: Mental Block Alerts ───
+        function renderMentalBlocks(blocks) {
+            const el = document.getElementById('mental-blocks-list');
+            if (!blocks || blocks.length === 0) {
+                el.innerHTML = `
+                    <div class="empty-section">
+                        <span class="empty-icon-sm">✅</span>
+                        <p>No mental blocks detected</p>
+                    </div>`;
+                return;
+            }
+
+            el.innerHTML = blocks.map(b => {
+                const severityClass = b.severity_score >= 7 ? 'severity-high' : b.severity_score >= 4 ? 'severity-medium' : 'severity-low';
+                return `
+                    <div class="alert-card ${severityClass}" id="mental-block-${b.id}">
+                        <div class="alert-header">
+                            <span class="alert-severity">${b.severity_score >= 7 ? '🔴' : b.severity_score >= 4 ? '🟡' : '🟢'} Severity: ${b.severity_score.toFixed(1)}/10</span>
+                            <span class="alert-freq">×${b.frequency_count} sessions</span>
+                        </div>
+                        <p class="alert-desc">${b.description}</p>
+                        <p class="alert-date">First detected: ${b.first_detected}</p>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // ─── Tutor: Session Timeline ───
+        function renderTimeline(sessions) {
+            const el = document.getElementById('timeline-list');
+            if (!sessions || sessions.length === 0) {
+                el.innerHTML = '<p class="text-muted">No sessions recorded yet.</p>';
+                return;
+            }
+
+            el.innerHTML = `<div class="timeline">${sessions.slice(0, 10).map((s, i) => {
+                const topics = s.detected_topics ? JSON.parse(s.detected_topics) : [];
+                const topicStr = Array.isArray(topics)
+                    ? topics.map(t => typeof t === 'string' ? t : t.name).join(', ')
+                    : '';
+                return `
+                    <div class="timeline-item" style="animation-delay:${i * 0.05}s">
+                        <div class="timeline-dot ${s.session_type === 'trial' ? 'dot-trial' : 'dot-session'}"></div>
+                        <div class="timeline-content">
+                            <div class="timeline-header">
+                                <span class="timeline-date">${s.session_date}</span>
+                                <span class="badge ${s.session_type === 'trial' ? 'badge-purple' : 'badge-blue'}">${s.session_type}</span>
+                                ${s.engagement_score ? `<span class="badge badge-green">Engagement: ${Math.round(s.engagement_score)}%</span>` : ''}
+                            </div>
+                            ${topicStr ? `<p class="timeline-topics">Topics: ${topicStr}</p>` : ''}
+                            ${s.extracted_summary ? `<p class="timeline-summary">${s.extracted_summary}</p>` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('')}</div>`;
+        }
+
+        // ─── Tutor: Next Lesson ───
+        function renderNextLesson(rec) {
+            const el = document.getElementById('next-lesson-content');
+            if (!rec) {
+                el.innerHTML = `
+                    <div class="next-lesson-empty">
+                        <span class="empty-icon-sm">📝</span>
+                        <p>Upload a session transcript to get personalized lesson recommendations.</p>
+                    </div>`;
+                return;
+            }
+            el.innerHTML = `
+                <div class="next-lesson">
+                    <p class="next-lesson-text">${rec}</p>
+                </div>`;
+        }
+
+        // ─── Parent: Goals ───
+        function renderParentGoals(goals) {
+            const el = document.getElementById('parent-goals-content');
+            if (!goals || goals.length === 0) {
+                el.innerHTML = '<p class="text-muted">No goals set yet.</p>';
+                return;
+            }
+
+            const achieved = goals.filter(g => g.status === 'achieved').length;
+            const inProgress = goals.filter(g => g.status === 'in progress').length;
+            const total = goals.length;
+            const pct = total > 0 ? Math.round(((achieved + inProgress * 0.5) / total) * 100) : 0;
+
+            el.innerHTML = `
+                <div class="goal-meter">
+                    <div class="meter-ring">
+                        <svg viewBox="0 0 120 120" class="meter-svg">
+                            <circle cx="60" cy="60" r="52" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="10"/>
+                            <circle cx="60" cy="60" r="52" fill="none" stroke="url(#meter-grad)" stroke-width="10"
+                                stroke-dasharray="${(pct / 100) * 327} 327"
+                                stroke-linecap="round" transform="rotate(-90 60 60)"
+                                class="meter-progress"/>
+                            <defs><linearGradient id="meter-grad" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#6366f1"/><stop offset="1" stop-color="#22c55e"/></linearGradient></defs>
+                        </svg>
+                        <div class="meter-value">${pct}%</div>
+                    </div>
+                    <div class="meter-stats">
+                        <div class="stat"><span class="stat-num">${achieved}</span><span class="stat-label">Achieved</span></div>
+                        <div class="stat"><span class="stat-num">${inProgress}</span><span class="stat-label">In Progress</span></div>
+                        <div class="stat"><span class="stat-num">${total - achieved - inProgress}</span><span class="stat-label">Not Started</span></div>
+                    </div>
+                </div>
+                <div class="parent-goals-list">
+                    ${goals.map(g => `
+                        <div class="parent-goal-item">
+                            <span class="parent-goal-icon">${g.status === 'achieved' ? '✅' : g.status === 'in progress' ? '🔄' : '⏳'}</span>
+                            <span>${g.description}</span>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        // ─── Parent: Topics Improving ───
+        function renderImproving(topics) {
+            const el = document.getElementById('improving-list');
+            if (!topics || topics.length === 0) {
+                el.innerHTML = '<p class="text-muted">Data will appear after a few sessions.</p>';
+                return;
+            }
+            el.innerHTML = topics.map(t => `
+                <div class="topic-item topic-improving">
+                    <span class="topic-icon">📈</span>
+                    <span class="topic-name">${t.topic_name}</span>
+                    <span class="topic-score">${Math.round(t.mastery_score)}%</span>
+                </div>
+            `).join('');
+        }
+
+        // ─── Parent: Needs Support ───
+        function renderNeedsSupport(topics) {
+            const el = document.getElementById('support-list');
+            if (!topics || topics.length === 0) {
+                el.innerHTML = `
+                    <div class="empty-section">
+                        <span class="empty-icon-sm">🌟</span>
+                        <p>All topics are progressing well!</p>
+                    </div>`;
+                return;
+            }
+            el.innerHTML = topics.map(t => `
+                <div class="topic-item topic-support">
+                    <span class="topic-icon">🔧</span>
+                    <span class="topic-name">${t.topic_name}</span>
+                    <span class="topic-score">${Math.round(t.mastery_score)}%</span>
+                </div>
+            `).join('');
+        }
+
+        // ─── Parent: Milestone ───
+        function renderMilestone(goals) {
+            const el = document.getElementById('milestone-content');
+            const inProgress = goals ? goals.filter(g => g.status === 'in progress') : [];
+            if (inProgress.length === 0) {
+                el.innerHTML = '<p class="text-muted">No active milestones.</p>';
+                return;
+            }
+
+            const next = inProgress[0];
+            el.innerHTML = `
+                <div class="milestone">
+                    <div class="milestone-icon">🏁</div>
+                    <h4 class="milestone-title">${next.description}</h4>
+                    <p class="milestone-outcome">${next.measurable_outcome || 'Working towards this goal'}</p>
+                    ${next.deadline ? `<p class="milestone-deadline">Target: ${next.deadline}</p>` : ''}
+                </div>
+            `;
+        }
+
+        // ─── Parent: Confidence Chart ───
+        function renderConfidenceChart() {
+            const container = document.getElementById('confidence-chart-container');
+            const fallback = document.getElementById('confidence-fallback');
+            const data = dashboardData.confidence_trend;
+
+            if (!data || data.length === 0) {
+                container.style.display = 'none';
+                fallback.style.display = 'block';
+                fallback.innerHTML = '<p class="text-muted" style="text-align:center;padding:2rem;">Confidence trend will appear after sessions are recorded.</p>';
+                return;
+            }
+
+            container.style.display = 'block';
+            fallback.style.display = 'none';
+
+            if (confidenceChart) confidenceChart.destroy();
+
+            const ctx = document.getElementById('confidence-chart').getContext('2d');
+            confidenceChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.map(d => d.date),
+                    datasets: [{
+                        label: 'Engagement Score',
+                        data: data.map(d => d.engagement),
+                        borderColor: '#6366f1',
+                        backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4,
+                        pointBackgroundColor: '#6366f1',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2,
+                        pointRadius: 4,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: true, labels: { color: '#94a3b8', font: { family: 'Inter' } } },
+                    },
+                    scales: {
+                        x: { ticks: { color: '#64748b', font: { family: 'Inter' } }, grid: { color: 'rgba(255,255,255,0.05)' } },
+                        y: { min: 0, max: 100, ticks: { color: '#64748b', font: { family: 'Inter' } }, grid: { color: 'rgba(255,255,255,0.05)' } }
+                    }
+                }
+            });
+        }
+
+        // ─── Transcript Upload ───
+        function openUploadModal() {
+            document.getElementById('upload-modal').style.display = 'flex';
+            document.getElementById('upload-form').style.display = 'block';
+            document.getElementById('processing-result').style.display = 'none';
+        }
+
+        function closeUploadModal() {
+            document.getElementById('upload-modal').style.display = 'none';
+            document.getElementById('upload-form').reset();
+            document.getElementById('session-date').value = new Date().toISOString().split('T')[0];
+        }
+
+        function closeUploadAndRefresh() {
+            closeUploadModal();
+            loadDashboard();
+        }
+
+        async function uploadTranscript(e) {
+            e.preventDefault();
+            const type = document.getElementById('transcript-type').value;
+            const transcript = document.getElementById('transcript-text').value;
+            const sessionDate = document.getElementById('session-date').value;
+
+            // Show loading
+            document.getElementById('upload-btn-text').textContent = 'Processing...';
+            document.getElementById('upload-spinner').style.display = 'inline-block';
+            document.getElementById('upload-btn').disabled = true;
+
+            try {
+                const endpoint = type === 'trial' ? '/api/process/trial' : '/api/process/session';
+                const res = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        student_id: STUDENT_ID,
+                        transcript: transcript,
+                        session_date: sessionDate
+                    })
+                });
+                const data = await res.json();
+
+                // Show result
+                document.getElementById('upload-form').style.display = 'none';
+                document.getElementById('processing-result').style.display = 'block';
+
+                const resultEl = document.getElementById('result-content');
+                if (type === 'trial') {
+                    const r = data.result;
+                    resultEl.innerHTML = `
+                        <div class="result-section">
+                            <h5>Goals Identified (${r.goals.length})</h5>
+                            ${r.goals.map(g => `<p>• ${g.description}</p>`).join('')}
+                        </div>
+                        <div class="result-section">
+                            <h5>Topics Mapped (${r.topics.length})</h5>
+                            ${r.topics.map(t => `<p>• ${t.name}${t.parent ? ` (under ${t.parent})` : ''}</p>`).join('')}
+                        </div>
+                        <div class="result-section">
+                            <h5>Summary</h5>
+                            <p>${r.summary}</p>
+                        </div>
+                    `;
+                } else {
+                    const r = data.result;
+                    resultEl.innerHTML = `
+                        <div class="result-section">
+                            <h5>Topics Discussed</h5>
+                            <p>${r.topics_discussed.join(', ') || 'None detected'}</p>
+                        </div>
+                        <div class="result-section">
+                            <h5>Parent Summary</h5>
+                            <p>${r.parent_summary}</p>
+                        </div>
+                        <div class="result-section">
+                            <h5>Tutor Insight</h5>
+                            <p>${r.tutor_insight}</p>
+                        </div>
+                        <div class="result-section">
+                            <h5>Recommendation</h5>
+                            <p>${r.recommended_next}</p>
+                        </div>
+                        <div class="result-section">
+                            <h5>Engagement Score</h5>
+                            <p>${r.engagement_score}%</p>
+                        </div>
+                    `;
+                }
+            } catch (err) {
+                console.error('Upload failed:', err);
+                alert('Processing failed. Please try again.');
+            } finally {
+                document.getElementById('upload-btn-text').textContent = 'Process Transcript';
+                document.getElementById('upload-spinner').style.display = 'none';
+                document.getElementById('upload-btn').disabled = false;
+            }
+        }
+
+        // Close modal on backdrop click
+        document.getElementById('upload-modal').addEventListener('click', function (e) {
+            if (e.target === this) closeUploadModal();
+        });
+    </script>
+</body>
+
+</html>

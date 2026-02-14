@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transcript Intelligence Dashboard</title>
+    <meta name="description" content="Longitudinal student growth tracking for math tutoring — powered by transcript analysis.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="app">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-inner">
+                <div class="logo">
+                    <div class="logo-icon">
+                        <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+                            <rect width="28" height="28" rx="8" fill="url(#logo-grad)"/>
+                            <path d="M8 20V10L14 6L20 10V20L14 16L8 20Z" fill="white" fill-opacity="0.9"/>
+                            <defs><linearGradient id="logo-grad" x1="0" y1="0" x2="28" y2="28"><stop stop-color="#6366f1"/><stop offset="1" stop-color="#8b5cf6"/></linearGradient></defs>
+                        </svg>
+                    </div>
+                    <div>
+                        <h1 class="logo-title">Transcript Intelligence</h1>
+                        <p class="logo-subtitle">Math Tutoring Growth Engine</p>
+                    </div>
+                </div>
+                <button class="btn btn-primary" onclick="openAddStudentModal()">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 2a1 1 0 011 1v4h4a1 1 0 110 2H9v4a1 1 0 11-2 0V9H3a1 1 0 010-2h4V3a1 1 0 011-1z"/></svg>
+                    Add Student
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main">
+            <div class="container">
+                <div class="section-header">
+                    <h2>Students</h2>
+                    <p class="text-muted">Select a student to view their growth dashboard</p>
+                </div>
+
+                <div id="students-grid" class="students-grid">
+                    <!-- Populated by JS -->
+                    <div class="loading-state">
+                        <div class="spinner"></div>
+                        <p>Loading students...</p>
+                    </div>
+                </div>
+
+                <!-- Empty state -->
+                <div id="empty-state" class="empty-state" style="display:none;">
+                    <div class="empty-icon">📚</div>
+                    <h3>No students yet</h3>
+                    <p>Add your first student to begin tracking their growth journey.</p>
+                    <button class="btn btn-primary" onclick="openAddStudentModal()">Add First Student</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Add Student Modal -->
+    <div id="add-student-modal" class="modal-overlay" style="display:none;">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Add New Student</h3>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <form id="add-student-form" onsubmit="addStudent(event)">
+                <div class="form-group">
+                    <label for="student-name">Name</label>
+                    <input type="text" id="student-name" required placeholder="e.g. Arjun Mehta">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="student-grade">Grade</label>
+                        <input type="text" id="student-grade" required placeholder="e.g. 8th Grade">
+                    </div>
+                    <div class="form-group">
+                        <label for="student-exam">Target Exam</label>
+                        <input type="text" id="student-exam" placeholder="e.g. AMC 8">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="student-curriculum">Curriculum</label>
+                    <input type="text" id="student-curriculum" placeholder="e.g. Common Core + AMC Prep">
+                </div>
+                <div class="form-group">
+                    <label for="student-goal">Long-Term Goal Summary</label>
+                    <textarea id="student-goal" rows="3" placeholder="e.g. Score in top 5% on AMC 8 and build strong algebra foundation"></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Add Student</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // ─── State ───
+        let students = [];
+
+        // ─── Init ───
+        document.addEventListener('DOMContentLoaded', loadStudents);
+
+        async function loadStudents() {
+            try {
+                const res = await fetch('/api/students');
+                students = await res.json();
+                renderStudents();
+            } catch (e) {
+                console.error('Failed to load students:', e);
+            }
+        }
+
+        function renderStudents() {
+            const grid = document.getElementById('students-grid');
+            const empty = document.getElementById('empty-state');
+
+            if (students.length === 0) {
+                grid.style.display = 'none';
+                empty.style.display = 'flex';
+                return;
+            }
+
+            empty.style.display = 'none';
+            grid.style.display = 'grid';
+
+            grid.innerHTML = students.map(s => `
+                <a href="/student/${s.id}" class="student-card" id="student-card-${s.id}">
+                    <div class="student-avatar">${s.name.charAt(0).toUpperCase()}</div>
+                    <div class="student-info">
+                        <h3 class="student-name">${s.name}</h3>
+                        <p class="student-grade">${s.grade}</p>
+                        ${s.target_exam ? `<span class="badge badge-purple">${s.target_exam}</span>` : ''}
+                        ${s.curriculum ? `<span class="badge badge-blue">${s.curriculum}</span>` : ''}
+                    </div>
+                    <div class="student-arrow">
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"/></svg>
+                    </div>
+                </a>
+            `).join('');
+        }
+
+        // ─── Modal ───
+        function openAddStudentModal() {
+            document.getElementById('add-student-modal').style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('add-student-modal').style.display = 'none';
+            document.getElementById('add-student-form').reset();
+        }
+
+        async function addStudent(e) {
+            e.preventDefault();
+            const data = {
+                name: document.getElementById('student-name').value,
+                grade: document.getElementById('student-grade').value,
+                target_exam: document.getElementById('student-exam').value,
+                curriculum: document.getElementById('student-curriculum').value,
+                long_term_goal_summary: document.getElementById('student-goal').value,
+            };
+
+            try {
+                const res = await fetch('/api/students', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(data)
+                });
+                if (res.ok) {
+                    closeModal();
+                    loadStudents();
+                }
+            } catch (e) {
+                console.error('Failed to add student:', e);
+            }
+        }
+
+        // Close modal on backdrop click
+        document.getElementById('add-student-modal').addEventListener('click', function(e) {
+            if (e.target === this) closeModal();
+        });
+    </script>
+</body>
+</html>
