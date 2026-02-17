@@ -1,78 +1,67 @@
-"""Seed script — populate database with sample data for development."""
-from lib.db import execute, query
-from datetime import date
+"""Seed the database with demo data for development/testing."""
+from werkzeug.security import generate_password_hash
+from lib.db import execute
 
 
 def seed():
-    """Insert sample student, goals, and topics if DB is empty."""
-    existing = query("SELECT COUNT(*) as c FROM students")
-    if existing and existing[0]["c"] > 0:
-        print("Database already seeded.")
-        return
+    """Insert demo users and sample student data."""
 
-    # --- Student ---
+    # ─── Demo Users ───
+
+    # Tutor (dev-mode email+password fallback)
+    tutor_id = execute(
+        "INSERT INTO users (email, password_hash, role, name) VALUES (?, ?, 'tutor', ?)",
+        ("tutor@example.com", generate_password_hash("demo123", method='pbkdf2:sha256'), "Dr. Sharma")
+    )
+
+    # Parent (linked by email AND phone)
+    parent_id = execute(
+        "INSERT INTO users (email, phone, role, name) VALUES (?, ?, 'parent', ?)",
+        ("parent@example.com", "+919876543210", "Mrs. Mehta")
+    )
+    print("Created demo users:")
+    print("  Tutor: tutor@example.com / demo123")
+    print("  Parent: parent@example.com OR +91-9876543210 (no password needed)")
+
+    # ─── Demo Student ───
     student_id = execute(
-        "INSERT INTO students (name, grade, curriculum, target_exam, long_term_goal_summary) "
-        "VALUES (?, ?, ?, ?, ?)",
-        ("Arjun Mehta", "8th Grade", "Common Core + AMC Prep",
-         "AMC 8", "Score in top 5% on AMC 8 and build strong algebra foundation")
+        "INSERT INTO students (name, grade, curriculum, target_exam, long_term_goal_summary, tutor_id, parent_email, parent_phone) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        ("Arjun Mehta", "8th Grade", "Common Core + AMC Prep", "AMC 8",
+         "Score in top 5% on AMC 8 and build strong algebra + geometry foundation.",
+         tutor_id, "parent@example.com", "+91-9876543210")
     )
+    print(f"Created demo student: Arjun Mehta (id={student_id})")
 
-    # --- Goals ---
+    # ─── Demo Goals ───
     goals = [
-        ("Master algebraic expressions and equations", "Score 90%+ on algebra unit test", "2026-06-01", "in progress"),
-        ("Build mental math speed", "Complete 20-problem set in under 10 minutes", "2026-04-01", "in progress"),
-        ("Prepare for AMC 8 competition", "Score 20+ on practice AMC 8", "2026-11-01", "not started"),
-        ("Overcome fraction/decimal confusion", "Zero errors on mixed operations quiz", "2026-05-01", "in progress"),
+        ("Master linear equations and inequalities", "Solve 90%+ of linear equation problems correctly", "in progress"),
+        ("Build strong number sense for AMC", "Complete AMC 8 practice test with score >= 20/25", "not started"),
+        ("Develop problem-solving strategies", "Apply at least 3 different strategies independently", "not started"),
     ]
-    for desc, outcome, deadline, status in goals:
+    for desc, outcome, status in goals:
         execute(
-            "INSERT INTO goals (student_id, description, measurable_outcome, deadline, status) "
-            "VALUES (?, ?, ?, ?, ?)",
-            (student_id, desc, outcome, deadline, status)
+            "INSERT INTO goals (student_id, description, measurable_outcome, status) VALUES (?, ?, ?, ?)",
+            (student_id, desc, outcome, status)
         )
+    print(f"Created {len(goals)} demo goals")
 
-    # --- Topics (hierarchical) ---
-    # Parent topics
-    algebra_id = execute(
-        "INSERT INTO topics (student_id, topic_name, mastery_score, confidence_score) VALUES (?, ?, ?, ?)",
-        (student_id, "Algebra", 45, 40)
-    )
-    number_sense_id = execute(
-        "INSERT INTO topics (student_id, topic_name, mastery_score, confidence_score) VALUES (?, ?, ?, ?)",
-        (student_id, "Number Sense", 60, 55)
-    )
-    geometry_id = execute(
-        "INSERT INTO topics (student_id, topic_name, mastery_score, confidence_score) VALUES (?, ?, ?, ?)",
-        (student_id, "Geometry", 35, 30)
-    )
-    word_problems_id = execute(
-        "INSERT INTO topics (student_id, topic_name, mastery_score, confidence_score) VALUES (?, ?, ?, ?)",
-        (student_id, "Word Problems", 50, 45)
-    )
-
-    # Sub-topics
-    subtopics = [
-        (student_id, "Linear Equations", algebra_id, 50, 45),
-        (student_id, "Expressions & Simplification", algebra_id, 55, 50),
-        (student_id, "Inequalities", algebra_id, 30, 25),
-        (student_id, "Fractions", number_sense_id, 40, 35),
-        (student_id, "Decimals", number_sense_id, 65, 60),
-        (student_id, "Ratios & Proportions", number_sense_id, 70, 65),
-        (student_id, "Angles & Triangles", geometry_id, 40, 35),
-        (student_id, "Area & Perimeter", geometry_id, 30, 25),
-        (student_id, "Rate Problems", word_problems_id, 55, 50),
-        (student_id, "Age Problems", word_problems_id, 45, 40),
+    # ─── Demo Topics ───
+    topics = [
+        ("Algebra", None, 45, 50),
+        ("Linear Equations", "Algebra", 60, 65),
+        ("Inequalities", "Algebra", 30, 35),
+        ("Geometry", None, 35, 40),
+        ("Triangles", "Geometry", 40, 45),
+        ("Number Theory", None, 25, 30),
     ]
-    for sid, name, parent, mastery, confidence in subtopics:
-        execute(
+    topic_ids = {}
+    for name, parent, mastery, conf in topics:
+        parent_id_val = topic_ids.get(parent)
+        tid = execute(
             "INSERT INTO topics (student_id, topic_name, parent_topic_id, mastery_score, confidence_score) "
             "VALUES (?, ?, ?, ?, ?)",
-            (sid, name, parent, mastery, confidence)
+            (student_id, name, parent_id_val, mastery, conf)
         )
-
-    print(f"Seeded student '{student_id}' with goals and topics.")
-
-
-if __name__ == "__main__":
-    seed()
+        topic_ids[name] = tid
+    print(f"Created {len(topics)} demo topics")

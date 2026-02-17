@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Session Report</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            color: #1e293b;
+            background: #fff;
+            line-height: 1.6;
+            padding: 0;
+        }
+
+        .report {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* Header */
+        .report-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            border-bottom: 3px solid #6366f1;
+            padding-bottom: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .report-brand h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #6366f1;
+        }
+
+        .report-brand p {
+            font-size: 0.85rem;
+            color: #64748b;
+        }
+
+        .report-date {
+            text-align: right;
+            font-size: 0.85rem;
+            color: #64748b;
+        }
+
+        .report-date strong {
+            display: block;
+            font-size: 1rem;
+            color: #1e293b;
+        }
+
+        /* Student Info */
+        .student-info {
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 1.25rem 1.5rem;
+            margin-bottom: 2rem;
+            display: flex;
+            gap: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .student-info .info-item {
+            flex: 1;
+            min-width: 120px;
+        }
+
+        .student-info .info-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #94a3b8;
+            font-weight: 600;
+        }
+
+        .student-info .info-value {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #1e293b;
+        }
+
+        /* Sections */
+        .section {
+            margin-bottom: 1.75rem;
+        }
+
+        .section h2 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .section p {
+            font-size: 0.95rem;
+            color: #334155;
+        }
+
+        /* Metrics Row */
+        .metrics-row {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .metric-card {
+            flex: 1;
+            min-width: 140px;
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 1rem 1.25rem;
+            text-align: center;
+        }
+
+        .metric-value {
+            font-size: 2rem;
+            font-weight: 800;
+            color: #6366f1;
+        }
+
+        .metric-label {
+            font-size: 0.8rem;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        /* Topic Tags */
+        .tag-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .tag {
+            display: inline-block;
+            padding: 0.3rem 0.75rem;
+            background: #eef2ff;
+            color: #6366f1;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        /* Lists */
+        .report-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .report-list li {
+            padding: 0.4rem 0;
+            padding-left: 1.5rem;
+            position: relative;
+            font-size: 0.95rem;
+            color: #334155;
+        }
+
+        .report-list li::before {
+            content: '•';
+            position: absolute;
+            left: 0.25rem;
+            color: #6366f1;
+            font-weight: bold;
+        }
+
+        /* Alert Box */
+        .alert-box {
+            border-left: 4px solid #f59e0b;
+            background: #fffbeb;
+            padding: 1rem 1.25rem;
+            border-radius: 0 8px 8px 0;
+            margin-top: 0.5rem;
+        }
+
+        .alert-box p {
+            color: #92400e;
+        }
+
+        /* Recommendation Box */
+        .recommendation-box {
+            background: linear-gradient(135deg, #eef2ff, #e0e7ff);
+            border-radius: 12px;
+            padding: 1.25rem 1.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .recommendation-box p {
+            color: #3730a3;
+            font-weight: 500;
+        }
+
+        /* Footer */
+        .report-footer {
+            margin-top: 3rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid #e2e8f0;
+            text-align: center;
+            font-size: 0.8rem;
+            color: #94a3b8;
+        }
+
+        /* Print button (hidden in print) */
+        .print-actions {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .print-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            background: #6366f1;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: 'Inter', sans-serif;
+            transition: background 0.2s;
+        }
+
+        .print-btn:hover {
+            background: #4f46e5;
+        }
+
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            background: #f1f5f9;
+            color: #475569;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: 'Inter', sans-serif;
+            text-decoration: none;
+            transition: background 0.2s;
+        }
+
+        .back-btn:hover {
+            background: #e2e8f0;
+        }
+
+        /* Print styles */
+        @media print {
+            body {
+                padding: 0;
+            }
+
+            .report {
+                padding: 0;
+            }
+
+            .print-actions {
+                display: none !important;
+            }
+
+            .report-header {
+                border-bottom-color: #6366f1;
+            }
+
+            .student-info {
+                background: #f8fafc;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            .metric-card {
+                background: #f8fafc;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            .tag {
+                background: #eef2ff;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            .recommendation-box {
+                background: #eef2ff;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            .alert-box {
+                background: #fffbeb;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="report">
+        <!-- Print Actions -->
+        <div class="print-actions">
+            <a href="javascript:history.back()" class="back-btn">← Back to Dashboard</a>
+            <button class="print-btn" onclick="window.print()">🖨️ Print / Save as PDF</button>
+        </div>
+
+        <!-- Header -->
+        <div class="report-header">
+            <div class="report-brand">
+                <h1>📐 Transcript Intelligence</h1>
+                <p>Math Tutoring Session Report</p>
+            </div>
+            <div class="report-date">
+                <span>Session Date</span>
+                <strong id="report-session-date">{{ session.session_date }}</strong>
+                <span>{{ session.session_type | capitalize }} Session</span>
+            </div>
+        </div>
+
+        <!-- Student Info -->
+        <div class="student-info">
+            <div class="info-item">
+                <div class="info-label">Student</div>
+                <div class="info-value">{{ student.name }}</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Grade</div>
+                <div class="info-value">{{ student.grade }}</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Curriculum</div>
+                <div class="info-value">{{ student.curriculum or 'General' }}</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Target</div>
+                <div class="info-value">{{ student.target_exam or '—' }}</div>
+            </div>
+        </div>
+
+        <!-- Metrics -->
+        <div class="metrics-row">
+            <div class="metric-card">
+                <div class="metric-value">{{ "%.0f"|format(session.engagement_score) }}%</div>
+                <div class="metric-label">Engagement</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value">{{ topics_count }}</div>
+                <div class="metric-label">Topics Covered</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value">{{ strengths_count }}</div>
+                <div class="metric-label">Strengths Noted</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value">{{ misconceptions_count }}</div>
+                <div class="metric-label">Areas to Review</div>
+            </div>
+        </div>
+
+        <!-- Topics Covered -->
+        {% if topics %}
+        <div class="section">
+            <h2>📚 Topics Covered</h2>
+            <div class="tag-list">
+                {% for t in topics %}
+                <span class="tag">{{ t }}</span>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Parent Summary -->
+        {% if session.parent_summary %}
+        <div class="section">
+            <h2>👨‍👩‍👧 Summary for Parents</h2>
+            <p>{{ session.parent_summary }}</p>
+        </div>
+        {% endif %}
+
+        <!-- Tutor Insight -->
+        {% if session.tutor_insight %}
+        <div class="section">
+            <h2>👨‍🏫 Tutor's Analysis</h2>
+            <p>{{ session.tutor_insight }}</p>
+        </div>
+        {% endif %}
+
+        <!-- Strengths -->
+        {% if strengths %}
+        <div class="section">
+            <h2>💪 Strengths Demonstrated</h2>
+            <ul class="report-list">
+                {% for s in strengths %}
+                <li>{{ s }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        <!-- Misconceptions -->
+        {% if misconceptions %}
+        <div class="section">
+            <h2>⚠️ Areas Needing Review</h2>
+            <div class="alert-box">
+                <ul class="report-list">
+                    {% for m in misconceptions %}
+                    <li>{{ m }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Recommendation -->
+        {% if session.recommended_next %}
+        <div class="section">
+            <h2>🚀 Recommendation for Next Session</h2>
+            <div class="recommendation-box">
+                <p>{{ session.recommended_next }}</p>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Footer -->
+        <div class="report-footer">
+            <p>Generated by Transcript Intelligence — Math Tutoring Growth Engine</p>
+            <p>Report generated on {{ generated_at }}</p>
+        </div>
+    </div>
+</body>
+
+</html>

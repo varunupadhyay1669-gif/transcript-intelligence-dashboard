@@ -1,5 +1,21 @@
 -- Transcript Intelligence Dashboard Schema
 
+-- Users (tutors and parents)
+CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    email TEXT,
+    phone TEXT,
+    password_hash TEXT,
+    google_id TEXT UNIQUE,
+    role TEXT NOT NULL CHECK(role IN ('tutor', 'parent')),
+    name TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Index for fast parent lookups by email or phone
+CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email ON users(email) WHERE email IS NOT NULL AND email != '';
+CREATE INDEX IF NOT EXISTS idx_users_phone ON users(phone) WHERE phone IS NOT NULL AND phone != '';
+
 CREATE TABLE IF NOT EXISTS students (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
@@ -7,7 +23,11 @@ CREATE TABLE IF NOT EXISTS students (
     curriculum TEXT,
     target_exam TEXT,
     long_term_goal_summary TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    tutor_id INTEGER,
+    parent_email TEXT,
+    parent_phone TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (tutor_id) REFERENCES users(id) ON DELETE SET NULL
 );
 
 CREATE TABLE IF NOT EXISTS goals (
