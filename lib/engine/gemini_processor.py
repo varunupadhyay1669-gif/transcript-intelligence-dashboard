@@ -3,12 +3,24 @@ Gemini-powered transcript processor — real AI intelligence.
 Implements the TranscriptProcessor interface.
 Falls back to RuleBasedProcessor if no API key or on error.
 """
-import os
 import json
+import logging
+import os
 import re
-from typing import Dict, Any
+import time
+from typing import Dict, Any, Optional
 
 from lib.engine.adapter import TranscriptProcessor
+
+logger = logging.getLogger(__name__)
+
+# ────────────────────────────────────────────
+# CONFIG
+# ────────────────────────────────────────────
+MAX_RETRIES = 3
+RETRY_BASE_DELAY = 1.0          # seconds, doubles each retry
+MAX_TRANSCRIPT_CHARS = 120_000  # ~30K tokens safety limit
+DEFAULT_MODEL = "gemini-2.0-flash"
 
 
 class GeminiProcessor(TranscriptProcessor):
@@ -16,14 +28,22 @@ class GeminiProcessor(TranscriptProcessor):
 
     def __init__(self):
         self.api_key = os.environ.get("GEMINI_API_KEY", "")
+        self.model_name = os.environ.get("GEMINI_MODEL", DEFAULT_MODEL)
         self.model = None
         if self.api_key:
             try:
                 import google.generativeai as genai
                 genai.configure(api_key=self.api_key)
-                self.model = genai.GenerativeModel("gemini-2.0-flash")
+                self.model = genai.GenerativeModel(
+                    self.model_name,
+                    generation_config=genai.GenerationConfig(
+                        temperature=0.2,
+                        response_mime_type="application/json",
+                    ),
+                )
+                logger.info("Gemini initialized: model=%s", self.model_name)
             except Exception as e:
-                print(f"⚠️ Gemini init failed: {e}. Will use rule-based fallback.")
+                logger.warning("Gemini init failed: %s. Will use rule-based fallback.", e)
                 self.model = None
 
     @property
@@ -31,10 +51,186 @@ class GeminiProcessor(TranscriptProcessor):
         return self.model is not None
 
     # ────────────────────────────────────────────
+    # SHARED HELPERS
+    # ────────────────────────────────────────────
+
+    @staticmethod
+    def _truncate_transcript(transcript: str) -> str:
+        """Cap transcript length to stay within model context limits."""
+        if len(transcript) <= MAX_TRANSCRIPT_CHARS:
+            return transcript
+        logger.warning(
+            "Transcript truncated: %d chars → %d chars",
+            len(transcript), MAX_TRANSCRIPT_CHARS,
+        )
+        return transcript[:MAX_TRANSCRIPT_CHARS] + "\n\n[TRANSCRIPT TRUNCATED — original was too long]"
+
+    @staticmethod
+    def _extract_json(text: str) -> dict:
+        """Extract the first complete JSON object from text, handling markdown fences."""
+        # Strip markdown code fences
+        cleaned = re.sub(r'^```(?:json)?\s*', '', text.strip())
+        cleaned = re.sub(r'\s*```$', '', cleaned)
+
+        # Try direct parse first (fast path)
+        try:
+            return json.loads(cleaned)
+        except json.JSONDecodeError:
+            pass
+
+        # Fallback: find outermost { … } pair
+        start = text.find('{')
+        if start == -1:
+            raise ValueError("No JSON object found in Gemini response")
+
+        depth = 0
+        for i in range(start, len(text)):
+            if text[i] == '{':
+                depth += 1
+            elif text[i] == '}':
+                depth -= 1
+                if depth == 0:
+                    try:
+                        return json.loads(text[start:i + 1])
+                    except json.JSONDecodeError as e:
+                        raise ValueError(f"Invalid JSON in Gemini response: {e}") from e
+
+        raise ValueError("Unclosed JSON object in Gemini response")
+
+    def _call_gemini(self, prompt: str) -> dict:
+        """Call Gemini with retry + backoff, return parsed JSON dict."""
+        last_error: Optional[Exception] = None
+        prompt_chars = len(prompt)
+
+        for attempt in range(1, MAX_RETRIES + 1):
+            try:
+                t0 = time.monotonic()
+                response = self.model.generate_content(prompt)
+                elapsed = time.monotonic() - t0
+                logger.info(
+                    "Gemini call OK: attempt=%d, prompt_chars=%d, time=%.2fs",
+                    attempt, prompt_chars, elapsed,
+                )
+                return self._extract_json(response.text.strip())
+            except Exception as e:
+                last_error = e
+                if attempt < MAX_RETRIES:
+                    delay = RETRY_BASE_DELAY * (2 ** (attempt - 1))
+                    logger.warning(
+                        "Gemini call failed (attempt %d/%d): %s — retrying in %.1fs",
+                        attempt, MAX_RETRIES, e, delay,
+                    )
+                    time.sleep(delay)
+                else:
+                    logger.error(
+                        "Gemini call failed after %d attempts: %s", MAX_RETRIES, e,
+                    )
+
+        raise last_error  # type: ignore[misc]
+
+    # ────────────────────────────────────────────
+    # OUTPUT VALIDATORS
+    # ────────────────────────────────────────────
+
+    @staticmethod
+    def _validate_trial_result(result: dict) -> dict:
+        """Validate and sanitize trial processing output."""
+        # Required top-level fields
+        if "goals" not in result or "topics" not in result:
+            raise ValueError("Missing required fields: 'goals' and 'topics'")
+
+        # Filter goals — each must have at least a description
+        valid_goals = []
+        for g in result["goals"]:
+            if isinstance(g, dict) and g.get("description"):
+                g.setdefault("measurable_outcome", "")
+                g.setdefault("evidence_quote", "")
+                g.setdefault("suggested_intervention", "")
+                g.setdefault("deadline", None)
+                valid_goals.append(g)
+        result["goals"] = valid_goals
+
+        if not result["goals"]:
+            raise ValueError("No valid goals extracted from transcript")
+
+        # Filter topics — each must have a name
+        result["topics"] = [
+            t for t in result["topics"]
+            if isinstance(t, dict) and t.get("name")
+        ]
+
+        # Sanitize mental blocks
+        valid_blocks = []
+        for mb in result.get("mental_blocks", []):
+            if isinstance(mb, dict) and mb.get("evidence_from_transcript"):
+                mb.setdefault("block_type", "confusion")
+                mb["severity"] = max(1, min(10, int(mb.get("severity", 5))))
+                mb.setdefault("cognitive_explanation", "")
+                mb.setdefault("impact_on_learning", "")
+                valid_blocks.append(mb)
+        result["mental_blocks"] = valid_blocks
+
+        # Defaults
+        result.setdefault("summary", "Trial session processed by AI.")
+        result.setdefault("curriculum_recommendation", "General Math Proficiency")
+        result.setdefault("lesson_recommendations", [])
+
+        return result
+
+    @staticmethod
+    def _validate_session_result(result: dict) -> dict:
+        """Validate and sanitize session processing output."""
+        result.setdefault("topics_discussed", [])
+        result.setdefault("misconceptions", [])
+        result.setdefault("strengths", [])
+        result.setdefault("mastery_updates", [])
+        result.setdefault("lesson_recommendations", [])
+        result.setdefault("parent_summary", "Session completed successfully.")
+        result.setdefault("tutor_insight", "Session data processed.")
+        result.setdefault("recommended_next", "Continue with current progression.")
+
+        # Clamp engagement score to [0, 100]
+        try:
+            score = float(result.get("engagement_score", 50))
+        except (ValueError, TypeError):
+            score = 50.0
+        result["engagement_score"] = max(0.0, min(100.0, score))
+
+        # Sanitize mental block signals
+        valid_signals = []
+        for sig in result.get("mental_block_signals", []):
+            if isinstance(sig, dict) and sig.get("description"):
+                sig.setdefault("type", "confusion")
+                try:
+                    sev = float(sig.get("severity", 1))
+                except (ValueError, TypeError):
+                    sev = 1.0
+                sig["severity"] = max(0.0, min(10.0, sev))
+                sig.setdefault("evidence_from_transcript", "")
+                sig.setdefault("cognitive_explanation", "")
+                sig.setdefault("impact_on_learning", "")
+                valid_signals.append(sig)
+        result["mental_block_signals"] = valid_signals
+
+        # Sanitize mastery updates
+        valid_mastery = []
+        for mu in result["mastery_updates"]:
+            if isinstance(mu, dict) and mu.get("topic"):
+                mu.setdefault("improvement", 0.0)
+                mu.setdefault("errors", 0)
+                mu.setdefault("independent_solves", 0)
+                valid_mastery.append(mu)
+        result["mastery_updates"] = valid_mastery
+
+        return result
+
+    # ────────────────────────────────────────────
     # TRIAL / INTAKE SESSION
     # ────────────────────────────────────────────
     def process_trial(self, transcript: str, student_id: int) -> Dict[str, Any]:
         """Process a trial/intake transcript using Gemini AI."""
+        transcript = self._truncate_transcript(transcript)
+
         prompt = f"""You are a senior educational performance analyst evaluating a 1-to-1 math tutoring trial/intake session transcript.
 
 Your job is to extract highly specific, measurable insights that will form the student's learning roadmap.
@@ -137,27 +333,10 @@ Guidelines:
 - Every insight must be traceable to EXACT transcript wording — no exceptions"""
 
         try:
-            response = self.model.generate_content(prompt)
-            text = response.text.strip()
-            # Clean markdown code blocks if present
-            text = re.sub(r'^```(?:json)?\s*', '', text)
-            text = re.sub(r'\s*```$', '', text)
-            result = json.loads(text)
-
-            # Validate required fields
-            if "goals" not in result or "topics" not in result:
-                raise ValueError("Missing required fields in response")
-
-            # Ensure proper structure
-            result.setdefault("summary", "Trial session processed by AI.")
-            result.setdefault("curriculum_recommendation", "General Math Proficiency")
-            result.setdefault("mental_blocks", [])
-            result.setdefault("lesson_recommendations", [])
-
-            return result
-
+            result = self._call_gemini(prompt)
+            return self._validate_trial_result(result)
         except Exception as e:
-            print(f"⚠️ Gemini trial processing error: {e}")
+            logger.error("Gemini trial processing error: %s", e)
             raise
 
     # ────────────────────────────────────────────
@@ -165,6 +344,8 @@ Guidelines:
     # ────────────────────────────────────────────
     def process_session(self, transcript: str, student_id: int) -> Dict[str, Any]:
         """Process a session transcript using Gemini AI."""
+        transcript = self._truncate_transcript(transcript)
+
         prompt = f"""You are a senior educational performance analyst evaluating a 1-to-1 math tutoring session transcript.
 
 Your job is to extract highly specific, measurable insights about student performance.
@@ -253,30 +434,8 @@ Rules for parent_summary:
 - Parents should feel good reading this, not worried"""
 
         try:
-            response = self.model.generate_content(prompt)
-            text = response.text.strip()
-            # Clean markdown code blocks if present
-            text = re.sub(r'^```(?:json)?\s*', '', text)
-            text = re.sub(r'\s*```$', '', text)
-            result = json.loads(text)
-
-            # Validate and set defaults
-            result.setdefault("topics_discussed", [])
-            result.setdefault("misconceptions", [])
-            result.setdefault("strengths", [])
-            result.setdefault("engagement_score", 50)
-            result.setdefault("mastery_updates", [])
-            result.setdefault("mental_block_signals", [])
-            result.setdefault("lesson_recommendations", [])
-            result.setdefault("parent_summary", "Session completed successfully.")
-            result.setdefault("tutor_insight", "Session data processed.")
-            result.setdefault("recommended_next", "Continue with current progression.")
-
-            # Ensure engagement_score is a number
-            result["engagement_score"] = float(result["engagement_score"])
-
-            return result
-
+            result = self._call_gemini(prompt)
+            return self._validate_session_result(result)
         except Exception as e:
-            print(f"⚠️ Gemini session processing error: {e}")
+            logger.error("Gemini session processing error: %s", e)
             raise

@@ -12,10 +12,28 @@ class TranscriptProcessor(ABC):
         Process a trial/intake transcript.
         Returns:
             {
-                "goals": [{"description": str, "measurable_outcome": str, "deadline": str|None}],
+                "goals": [{
+                    "description": str,
+                    "measurable_outcome": str,
+                    "evidence_quote": str,
+                    "suggested_intervention": str,
+                    "deadline": str|None
+                }],
                 "topics": [{"name": str, "parent": str|None}],
                 "summary": str,
-                "curriculum_recommendation": str
+                "curriculum_recommendation": str,
+                "mental_blocks": [{
+                    "block_type": str,
+                    "severity": int,
+                    "evidence_from_transcript": str,
+                    "cognitive_explanation": str,
+                    "impact_on_learning": str
+                }],
+                "lesson_recommendations": [{
+                    "intervention_type": str,
+                    "specific_strategy": str,
+                    "why_this_will_work": str
+                }]
             }
         """
         pass
